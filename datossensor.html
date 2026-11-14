@@ -1,0 +1,2364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AEGIS // Crew Biomedical Telemetry</title>
+  <style>
+    :root {
+      --bg-main: #070d17;
+      --bg-panel: #0d1624;
+      --bg-card: #121e31;
+      --border-color: #1e2f4a;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --accent-cyan: #38bdf8;
+      --accent-green: #10b981;
+      --accent-yellow: #f59e0b;
+      --accent-orange: #f97316;
+      --accent-red: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-primary);
+      padding: 14px;
+      min-height: 100vh;
+    }
+
+    /* HEADER */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 16px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 8px var(--accent-green);
+    }
+
+    .brand h1 {
+      font-size: 1rem;
+      letter-spacing: 0.5px;
+      font-weight: 700;
+    }
+
+    .brand span {
+      color: var(--accent-cyan);
+      font-weight: 400;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn:hover:not(:disabled) {
+      border-color: var(--accent-cyan);
+      background: #182842;
+    }
+
+    .btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: #0284c7;
+      border-color: #38bdf8;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #0369a1;
+    }
+
+    .btn-danger.active {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: var(--accent-red);
+      color: #fca5a5;
+    }
+
+    .btn-active {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    .btn-custom.active {
+      background: rgba(168, 85, 247, 0.22);
+      border-color: #c084fc;
+      color: #e9d5ff;
+    }
+
+    /* BARRA DE ACOPLAMIENTO CRUZADO */
+    .sync-bar {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 16px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .sync-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+    }
+
+    .sync-group label {
+      color: var(--text-secondary);
+    }
+
+    select {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      padding: 5px 8px;
+      border-radius: 5px;
+      font-size: 0.8rem;
+      outline: none;
+    }
+
+    /* GRID PRINCIPAL */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.55fr 1.05fr;
+      gap: 12px;
+      transition: all 0.25s ease;
+    }
+
+    .main-grid.usb-single-mode {
+      grid-template-columns: 1fr;
+    }
+
+    @media (max-width: 1150px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+
+    .panel-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
+
+    /* ECG CANVAS & METRICS */
+    .ecg-container {
+      position: relative;
+      background: #050911;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      height: 230px;
+      overflow: hidden;
+    }
+
+    canvas#ecgCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .ecg-overlay-bpm {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      text-align: right;
+      background: rgba(7, 13, 23, 0.85);
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+    }
+
+    .bpm-val {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--accent-green);
+      line-height: 1;
+    }
+
+    .bpm-label {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+    }
+
+    .usb-live-monitor {
+      position: absolute;
+      bottom: 8px;
+      left: 10px;
+      background: rgba(7, 13, 23, 0.85);
+      border: 1px solid #1e3a5f;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      color: var(--accent-cyan);
+      display: none;
+    }
+
+    /* CREADOR CUSTOM DE ONDA ECG (SLIDERS) */
+    .custom-ecg-builder {
+      background: #09111f;
+      border: 1px solid #3b2d63;
+      border-left: 4px solid #a855f7;
+      border-radius: 6px;
+      padding: 12px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .custom-builder-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .custom-builder-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #d8b4fe;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .custom-sliders-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 850px) {
+      .custom-sliders-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 520px) {
+      .custom-sliders-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .slider-control {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .slider-control-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.74rem;
+    }
+
+    .slider-control-top span:first-child {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .slider-val-badge {
+      color: #e9d5ff;
+      font-weight: 700;
+      font-family: monospace;
+      font-size: 0.78rem;
+    }
+
+    .slider-control input[type="range"] {
+      width: 100%;
+      accent-color: #a855f7;
+      cursor: pointer;
+    }
+
+    .slider-bounds {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.65rem;
+      color: #64748b;
+    }
+
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+
+    @media (max-width: 700px) {
+      .metrics-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .metric-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px;
+      text-align: center;
+      transition: all 0.25s ease;
+    }
+
+    .metric-box .m-label {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      margin-bottom: 3px;
+    }
+
+    .metric-box .m-val {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .metric-box .m-sub {
+      font-size: 0.68rem;
+      color: var(--accent-green);
+      margin-top: 2px;
+    }
+
+    /* OXÍMETRO DE PULSO (SpO2) */
+    .oximeter-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--accent-green);
+      border-radius: 6px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: border-color 0.25s ease;
+    }
+
+    .ox-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .ox-readout {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .ox-big-val {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--accent-green);
+    }
+
+    .ox-badge {
+      padding: 4px 9px;
+      border-radius: 5px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.15);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .ox-presets {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    @media (max-width: 600px) {
+      .ox-presets {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .btn-ox {
+      padding: 6px 4px;
+      font-size: 0.71rem;
+      font-weight: 700;
+      border-radius: 5px;
+      border: 1px solid var(--border-color);
+      background: #09101d;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .btn-ox:hover:not(:disabled) {
+      border-color: var(--accent-cyan);
+    }
+
+    .btn-ox.active-sano {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: var(--accent-green);
+      color: #6ee7b7;
+    }
+
+    .btn-ox.active-leve {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--accent-cyan);
+      color: #7dd3fc;
+    }
+
+    .btn-ox.active-moderada {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: var(--accent-yellow);
+      color: #fcd34d;
+    }
+
+    .btn-ox.active-grave {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: var(--accent-red);
+      color: #fca5a5;
+    }
+
+    .ox-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .ox-slider-row input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent-cyan);
+      cursor: pointer;
+    }
+
+    .ox-action-box {
+      background: #09101d;
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      padding: 8px 10px;
+      font-size: 0.78rem;
+      line-height: 1.4;
+    }
+
+    /* MÓDULO NIRS (OXIMETRÍA TISULAR Y CEREBRAL — SCHEEREN ET AL., 2012) */
+    .nirs-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--accent-cyan);
+      border-radius: 6px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: border-color 0.25s ease;
+    }
+
+    .nirs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    @media (max-width: 600px) {
+      .nirs-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .nirs-channel {
+      background: #09101d;
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .nirs-channel-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .nirs-channel-title {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .nirs-channel-site {
+      font-size: 0.66rem;
+      color: var(--text-secondary);
+    }
+
+    .nirs-channel-val {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--accent-green);
+      line-height: 1;
+    }
+
+    .nirs-mini-presets {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+    }
+
+    .btn-nirs-mini {
+      padding: 4px 2px;
+      font-size: 0.66rem;
+      font-weight: 700;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .btn-nirs-mini:hover {
+      border-color: var(--accent-cyan);
+    }
+
+    .btn-nirs-mini.active-ok {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: var(--accent-green);
+      color: #6ee7b7;
+    }
+
+    .btn-nirs-mini.active-warn {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: var(--accent-yellow);
+      color: #fcd34d;
+    }
+
+    .btn-nirs-mini.active-crit {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: var(--accent-red);
+      color: #fca5a5;
+    }
+
+    /* SELECTOR DE RANGOS DE RADIACIÓN */
+    .rad-levels-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      background: #09101d;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-nivel {
+      padding: 6px 4px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      border-radius: 5px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .btn-nivel.active-saludable {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: var(--accent-green);
+      color: #6ee7b7;
+    }
+
+    .btn-nivel.active-ligero {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--accent-cyan);
+      color: #7dd3fc;
+    }
+
+    .btn-nivel.active-preocupante {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: var(--accent-yellow);
+      color: #fcd34d;
+    }
+
+    .btn-nivel.active-peligro {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: var(--accent-red);
+      color: #fca5a5;
+    }
+
+    /* QUIMIOSENSORES RONSS */
+    .ronss-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .sensor-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 9px;
+    }
+
+    .sensor-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 3px;
+    }
+
+    .sensor-name {
+      font-size: 0.76rem;
+      font-weight: 700;
+    }
+
+    .sensor-val {
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
+    .sensor-range {
+      font-size: 0.66rem;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 5px;
+      background: #09101d;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.35s ease, background-color 0.35s ease;
+    }
+
+    /* DIAGNÓSTICO Y PROTOCOLO CLÍNICO */
+    .diag-box {
+      background: var(--bg-card);
+      border-left: 4px solid var(--accent-green);
+      border-radius: 6px;
+      padding: 12px;
+    }
+
+    .diag-section {
+      margin-bottom: 8px;
+      font-size: 0.81rem;
+      line-height: 1.45;
+    }
+
+    .diag-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .diag-title {
+      font-weight: 700;
+      color: var(--accent-cyan);
+      margin-bottom: 2px;
+    }
+
+    .treatment-card {
+      background: #0a1220;
+      border: 1px solid #1e3a5f;
+      border-left: 4px solid var(--accent-cyan);
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-top: 6px;
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+
+    .badge-status {
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .badge-critical {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border-color: var(--accent-red);
+      animation: pulseAlert 1.2s infinite;
+    }
+
+    @keyframes pulseAlert {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.65; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="brand">
+      <div class="brand-dot" id="system-dot"></div>
+      <h1>AEGIS <span>// Crew Biomedical Telemetry</span></h1>
+    </div>
+    <div class="header-actions">
+      <select id="baud-rate-select" title="Velocidad del puerto serie Arduino">
+        <option value="9600">9600 bps</option>
+        <option value="115200" selected>115200 bps</option>
+      </select>
+      <button class="btn btn-primary" id="btn-connect-usb" onclick="conectarArduinoUSB()">🔌 Conectar Arduino (USB)</button>
+      <button class="btn" id="btn-disconnect-usb" onclick="desconectarArduinoUSB()" style="display:none;">Desconectar USB</button>
+      <span id="usb-status-text" style="font-size:0.78rem; color:var(--text-secondary);">Modo: Simulación Local</span>
+    </div>
+  </header>
+
+  <!-- BARRA DE CONTROL DE ACOPLAMIENTO BIDIRECCIONAL -->
+  <div class="sync-bar" id="sync-bar">
+    <div class="sync-group">
+      <span style="color:var(--accent-cyan); font-weight:700;">FUENTE DE DATOS:</span>
+      <span id="badge-fuente" class="badge-status">SIMULACIÓN ACTIVA</span>
+    </div>
+
+    <div class="sync-group">
+      <label for="select-ecg-to-quimio">Al simular <b>ECG</b>, dejar Quimiosensores en:</label>
+      <select id="select-ecg-to-quimio" onchange="onCambioAcoplamientoECG()">
+        <option value="saludable">Estado Saludable (Basal)</option>
+        <option value="especifico">Radiación Acoplada (Estrés Oxidativo)</option>
+      </select>
+    </div>
+
+    <div class="sync-group">
+      <label for="select-quimio-to-ecg">Al simular <b>Quimiosensores</b>, dejar ECG en:</label>
+      <select id="select-quimio-to-ecg" onchange="onCambioAcoplamientoQuimio()">
+        <option value="normal">Configuración Normal (Perfil)</option>
+        <option value="simulada">Configuración Simulada (Estrés Cardíaco)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <div class="main-grid" id="main-grid">
+
+    <!-- COLUMNA IZQUIERDA: MONITOR ECG Y DIAGNÓSTICO -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Electrocardiograma (Derivación II • AD8232)</span>
+        <div id="sim-ecg-buttons" style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="btn btn-ecg btn-active" id="ecg-btn-normal" onclick="seleccionarModoECG('normal')">Normal</button>
+          <button class="btn btn-ecg btn-danger" id="ecg-btn-stemi" onclick="seleccionarModoECG('stemi')">Infarto ST</button>
+          <button class="btn btn-ecg btn-danger" id="ecg-btn-fv" onclick="seleccionarModoECG('fv')">Fibrilación Vent.</button>
+          <button class="btn btn-ecg btn-danger" id="ecg-btn-paro" onclick="seleccionarModoECG('paro')">Paro Cardíaco</button>
+          <button class="btn btn-ecg btn-custom" id="ecg-btn-custom" onclick="seleccionarModoECG('custom')">🎛️ Personalizado</button>
+        </div>
+      </div>
+
+      <div class="ecg-container">
+        <canvas id="ecgCanvas"></canvas>
+        <div class="ecg-overlay-bpm">
+          <div class="bpm-val" id="val-bpm">77</div>
+          <div class="bpm-label" id="lbl-ritmo">77 LPM • RITMO SINUSAL</div>
+        </div>
+        <div class="usb-live-monitor" id="usb-live-monitor">
+          USB Raw: <span id="usb-raw-val">---</span> | Muestras/s: <span id="usb-rate-val">0</span> | Latidos analizados: <span id="usb-beats-val">0</span>
+        </div>
+      </div>
+
+      <!-- CREADOR CUSTOMIZABLE DE ONDA ECG (SLIDERS) -->
+      <div class="custom-ecg-builder" id="custom-ecg-builder">
+        <div class="custom-builder-header">
+          <span class="custom-builder-title">🎛️ Generador Paramétrico de Onda ECG (Personalizado)</span>
+          <button class="btn" style="padding:3px 9px; font-size:0.72rem;" onclick="restablecerCustomECG()">↺ Restablecer Basal</button>
+        </div>
+
+        <div class="custom-sliders-grid">
+          <div class="slider-control">
+            <div class="slider-control-top">
+              <span>Frecuencia (LPM)</span>
+              <span class="slider-val-badge" id="cust-lbl-bpm">75 LPM</span>
+            </div>
+            <input type="range" id="cust-slider-bpm" min="30" max="220" step="1" value="75" oninput="actualizarCustomECG()" />
+            <div class="slider-bounds"><span>30 (Bradi)</span><span>100</span><span>220 (Taqui)</span></div>
+          </div>
+
+          <div class="slider-control">
+            <div class="slider-control-top">
+              <span>Segmento ST (mV)</span>
+              <span class="slider-val-badge" id="cust-lbl-st">+0.00 mV</span>
+            </div>
+            <input type="range" id="cust-slider-st" min="-0.30" max="0.50" step="0.01" value="0.00" oninput="actualizarCustomECG()" />
+            <div class="slider-bounds"><span>-0.30 (Infra)</span><span>0.00</span><span>+0.50 (Supra)</span></div>
+          </div>
+
+          <div class="slider-control">
+            <div class="slider-control-top">
+              <span>Onda P (mV)</span>
+              <span class="slider-val-badge" id="cust-lbl-p">0.12 mV</span>
+            </div>
+            <input type="range" id="cust-slider-p" min="0.00" max="0.30" step="0.01" value="0.12" oninput="actualizarCustomECG()" />
+            <div class="slider-bounds"><span>0.00 (Ausente)</span><span>0.15</span><span>0.30 mV</span></div>
+          </div>
+
+          <div class="slider-control">
+            <div class="slider-control-top">
+              <span>Intervalo PR (ms)</span>
+              <span class="slider-val-badge" id="cust-lbl-pr">150 ms</span>
+            </div>
+            <input type="range" id="cust-slider-pr" min="80" max="300" step="5" value="150" oninput="actualizarCustomECG()" />
+            <div class="slider-bounds"><span>80 (Corto)</span><span>160</span><span>300 (Bloqueo)</span></div>
+          </div>
+
+          <div class="slider-control">
+            <div class="slider-control-top">
+              <span>Complejo QRS (ms)</span>
+              <span class="slider-val-badge" id="cust-lbl-qrs">88 ms</span>
+            </div>
+            <input type="range" id="cust-slider-qrs" min="60" max="180" step="2" value="88" oninput="actualizarCustomECG()" />
+            <div class="slider-bounds"><span>60 ms</span><span>120</span><span>180 (Ancho)</span></div>
+          </div>
+
+          <div class="slider-control">
+            <div class="slider-control-top">
+              <span>Onda T (mV)</span>
+              <span class="slider-val-badge" id="cust-lbl-t">+0.22 mV</span>
+            </div>
+            <input type="range" id="cust-slider-t" min="-0.40" max="0.60" step="0.02" value="0.22" oninput="actualizarCustomECG()" />
+            <div class="slider-bounds"><span>-0.40 (Inv.)</span><span>+0.20</span><span>+0.60 (Picuda)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MÉTRICAS MORFOLÓGICAS -->
+      <div class="metrics-row">
+        <div class="metric-box" id="box-p">
+          <div class="m-label">Onda P</div>
+          <div class="m-val" id="val-p">Presente</div>
+          <div class="m-sub" id="sub-p">Sinusal (+)</div>
+        </div>
+        <div class="metric-box" id="box-pr">
+          <div class="m-label">Intervalo PR</div>
+          <div class="m-val" id="val-pr">150 ms</div>
+          <div class="m-sub" id="sub-pr">Normal (120-200)</div>
+        </div>
+        <div class="metric-box" id="box-qrs">
+          <div class="m-label">Complejo QRS</div>
+          <div class="m-val" id="val-qrs">88 ms</div>
+          <div class="m-sub" id="sub-qrs">Estrecho (&lt;120)</div>
+        </div>
+        <div class="metric-box" id="box-qtc">
+          <div class="m-label">Intervalo QTc</div>
+          <div class="m-val" id="val-qtc">395 ms</div>
+          <div class="m-sub" id="sub-qtc">Normal (&lt;440)</div>
+        </div>
+        <div class="metric-box" id="box-st">
+          <div class="m-label">Segmento ST</div>
+          <div class="m-val" id="val-st">+0.01 mV</div>
+          <div class="m-sub" id="sub-st">Isoeléctrico</div>
+        </div>
+      </div>
+
+      <!-- DIAGNÓSTICO AUTÓNOMO INTEGRADO -->
+      <div class="panel-header" style="margin-top:4px;">
+        <span class="panel-title" id="diag-panel-title">Motor de Diagnóstico Clínico y Terapéutica</span>
+        <span class="badge-status" id="badge-alerta-global">ESTADO NOMINAL</span>
+      </div>
+
+      <div class="diag-box" id="diag-box">
+        <div class="diag-section">
+          <div class="diag-title">1. Electrofisiología Cardíaca:</div>
+          <div id="diag-ecg-text">Ritmo sinusal normal a 77 LPM. Conducción AV conservada y segmento ST isoeléctrico sin signos de isquemia aguda.</div>
+        </div>
+        <div class="diag-section" id="diag-section-ox">
+          <div class="diag-title">2. Oximetría Dual — Arterial (SpO₂) + Tisular/Cerebral NIRS (StO₂ / rSO₂):</div>
+          <div id="diag-ox-text">SpO₂ 98% (Arterial) • StO₂ 84% (Antebrazo) • rSO₂ 68% (Frontal): Oxigenación sistémica, perfusión periférica y flujo cerebral en equilibrio nominal.</div>
+        </div>
+        <div class="diag-section" id="diag-section-quimio">
+          <div class="diag-title">3. Estado Redox / Quimiosensores (RONSS):</div>
+          <div id="diag-quimio-text">Rango Saludable (Basal): Niveles equilibrados de especies reactivas y reservas óptimas de Glutatión (GSH).</div>
+        </div>
+        <div class="treatment-card" id="treatment-card">
+          <div class="diag-title" style="color:var(--accent-green);" id="treatment-header">4. Protocolo Terapéutico Integrado:</div>
+          <div id="treatment-body">Homeostasis cardíaca, oxigenación tisular/cerebral y balance redox en rangos óptimos. No requiere fármacos ni oxigenoterapia.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLUMNA DERECHA: SIMULADORES (DESACTIVADA Y OCULTA EN MODO REAL USB) -->
+    <div class="panel" id="right-sim-panel">
+
+      <!-- MÓDULO 1: OXÍMETRO DE PULSO ARTERIAL (SpO2) -->
+      <div class="panel-header">
+        <span class="panel-title">Oxímetro de Pulso (SpO₂ • Arterial)</span>
+        <span style="font-size:0.72rem; color:var(--text-secondary);">Macrocirculación Pulsátil</span>
+      </div>
+
+      <div class="oximeter-card" id="oximeter-card">
+        <div class="ox-header">
+          <div class="ox-readout">
+            <span class="ox-big-val" id="val-spo2">98%</span>
+            <span style="font-size:0.75rem; color:var(--text-secondary);">SpO₂</span>
+          </div>
+          <span class="ox-badge" id="ox-status-badge">SANO (95–100%)</span>
+        </div>
+
+        <div class="ox-presets">
+          <button class="btn-ox active-sano" id="ox-btn-sano" onclick="seleccionarPresetOximetro(98)">95–100%<br>Sano</button>
+          <button class="btn-ox" id="ox-btn-leve" onclick="seleccionarPresetOximetro(92)">90–94%<br>Hipoxia Leve</button>
+          <button class="btn-ox" id="ox-btn-moderada" onclick="seleccionarPresetOximetro(87)">85–89%<br>Hipoxia Mod.</button>
+          <button class="btn-ox" id="ox-btn-grave" onclick="seleccionarPresetOximetro(81)">≤ 84%<br>Hipoxemia Grave</button>
+        </div>
+
+        <div class="ox-slider-row">
+          <span>60%</span>
+          <input type="range" id="ox-slider" min="60" max="100" value="98" oninput="cambiarSpo2(this.value)" />
+          <span>100%</span>
+        </div>
+
+        <div class="ox-action-box" id="ox-action-box">
+          <b style="color:#10b981;">Estado Sano:</b> Saturación arterial normal. Sin necesidad de estudios adicionales ni oxígeno suplementario.
+        </div>
+      </div>
+
+      <!-- MÓDULO 2: OXIMETRÍA TISULAR Y CEREBRAL NIRS (700–1100 nm • SCHEEREN ET AL., 2012) -->
+      <div class="panel-header" style="margin-top:2px;">
+        <span class="panel-title">Oximetría Tisular NIRS (700–1100 nm)</span>
+        <span style="font-size:0.72rem; color:var(--accent-cyan);">Perfusión Microvascular</span>
+      </div>
+
+      <div class="nirs-card" id="nirs-card">
+        <div class="nirs-grid">
+          <!-- CANAL PERIFÉRICO (StO2 Antebrazo / Tenar) -->
+          <div class="nirs-channel">
+            <div class="nirs-channel-top">
+              <div>
+                <div class="nirs-channel-title">StO₂ Periférica</div>
+                <div class="nirs-channel-site">Antebrazo (Rango: 75–90%)</div>
+              </div>
+              <span class="nirs-channel-val" id="val-sto2">84%</span>
+            </div>
+            <div class="ox-slider-row" style="gap:6px;">
+              <span style="font-size:0.65rem;">30%</span>
+              <input type="range" id="sto2-slider" min="30" max="100" value="84" oninput="cambiarNIRS('sto2', this.value)" />
+              <span style="font-size:0.65rem;">100%</span>
+            </div>
+            <div class="nirs-mini-presets">
+              <button class="btn-nirs-mini active-ok" id="sto2-btn-ok" onclick="cambiarNIRS('sto2', 84)">Nominal<br>75–90%</button>
+              <button class="btn-nirs-mini" id="sto2-btn-warn" onclick="cambiarNIRS('sto2', 68)">Alerta<br>&lt; 75%</button>
+              <button class="btn-nirs-mini" id="sto2-btn-crit" onclick="cambiarNIRS('sto2', 48)">Shock<br>≤ 50%</button>
+            </div>
+          </div>
+
+          <!-- CANAL CEREBRAL (rSO2 Corteza Frontal) -->
+          <div class="nirs-channel">
+            <div class="nirs-channel-top">
+              <div>
+                <div class="nirs-channel-title">rSO₂ Cerebral</div>
+                <div class="nirs-channel-site">Frontal (Rango: 55–80%)</div>
+              </div>
+              <span class="nirs-channel-val" id="val-rso2">68%</span>
+            </div>
+            <div class="ox-slider-row" style="gap:6px;">
+              <span style="font-size:0.65rem;">25%</span>
+              <input type="range" id="rso2-slider" min="25" max="95" value="68" oninput="cambiarNIRS('rso2', this.value)" />
+              <span style="font-size:0.65rem;">95%</span>
+            </div>
+            <div class="nirs-mini-presets">
+              <button class="btn-nirs-mini active-ok" id="rso2-btn-ok" onclick="cambiarNIRS('rso2', 68)">Nominal<br>55–80%</button>
+              <button class="btn-nirs-mini" id="rso2-btn-warn" onclick="cambiarNIRS('rso2', 48)">Baja<br>&lt; 50%</button>
+              <button class="btn-nirs-mini" id="rso2-btn-crit" onclick="cambiarNIRS('rso2', 40)">Crítica<br>&lt; 45%</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ox-action-box" id="nirs-action-box">
+          <b style="color:#10b981;">Perfusión Tisular Nominal:</b> Entrega y consumo de O₂ equilibrados en músculo periférico (StO₂ ≥ 75%) y corteza frontal (rSO₂ ≥ 55%).
+        </div>
+      </div>
+
+      <!-- MÓDULO 3: QUIMIOSENSORES RONSS -->
+      <div class="panel-header" style="margin-top:2px;">
+        <span class="panel-title">Quimiosensores RONSS (Radiación / Redox)</span>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-quimio btn-active" id="q-btn-basal" onclick="seleccionarModoPrincipalQuimio('basal')">Basal</button>
+          <button class="btn btn-quimio" id="q-btn-radiacion" onclick="seleccionarModoPrincipalQuimio('radiacion')">Radiación</button>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:0.74rem; color:var(--text-secondary); margin-bottom:5px; font-weight:600;">
+          Nivel de Exposición / Severidad de Radiación:
+        </div>
+        <div class="rad-levels-bar">
+          <button class="btn-nivel active-saludable" id="lvl-saludable" onclick="seleccionarNivelRadiacion('saludable')">Saludable</button>
+          <button class="btn-nivel" id="lvl-ligero" onclick="seleccionarNivelRadiacion('ligero')">Ligero</button>
+          <button class="btn-nivel" id="lvl-preocupante" onclick="seleccionarNivelRadiacion('preocupante')">Preocupante</button>
+          <button class="btn-nivel" id="lvl-peligro" onclick="seleccionarNivelRadiacion('peligro')">Peligro</button>
+        </div>
+      </div>
+
+      <div class="ronss-grid">
+        <div class="sensor-card">
+          <div class="sensor-top">
+            <span class="sensor-name" style="color:#38bdf8;">Peróxido (H₂O₂)</span>
+            <span class="sensor-val" id="val-h2o2">1.20 µM</span>
+          </div>
+          <div class="sensor-range">Saludable: 0.5 – 2.5 µM</div>
+          <div class="progress-track"><div class="progress-fill" id="bar-h2o2" style="width:15%; background:#10b981;"></div></div>
+        </div>
+
+        <div class="sensor-card">
+          <div class="sensor-top">
+            <span class="sensor-name" style="color:#f59e0b;">Superóxido (O₂•⁻)</span>
+            <span class="sensor-val" id="val-o2">0.15 nM</span>
+          </div>
+          <div class="sensor-range">Saludable: 0.05 – 0.30 nM</div>
+          <div class="progress-track"><div class="progress-fill" id="bar-o2" style="width:18%; background:#10b981;"></div></div>
+        </div>
+
+        <div class="sensor-card">
+          <div class="sensor-top">
+            <span class="sensor-name" style="color:#ec4899;">Peroxinitrito (ONOO⁻)</span>
+            <span class="sensor-val" id="val-onoo">12 nM</span>
+          </div>
+          <div class="sensor-range">Saludable: 5 – 25 nM</div>
+          <div class="progress-track"><div class="progress-fill" id="bar-onoo" style="width:14%; background:#10b981;"></div></div>
+        </div>
+
+        <div class="sensor-card">
+          <div class="sensor-top">
+            <span class="sensor-name" style="color:#a855f7;">Óxido Nítrico (NO•)</span>
+            <span class="sensor-val" id="val-no">35 nM</span>
+          </div>
+          <div class="sensor-range">Saludable: 20 – 60 nM</div>
+          <div class="progress-track"><div class="progress-fill" id="bar-no" style="width:35%; background:#10b981;"></div></div>
+        </div>
+
+        <div class="sensor-card" style="grid-column: span 2;">
+          <div class="sensor-top">
+            <span class="sensor-name" style="color:#10b981;">Glutatión Reducido (GSH — Defensa Antioxidante)</span>
+            <span class="sensor-val" id="val-gsh">4.80 mM</span>
+          </div>
+          <div class="sensor-range">Saludable: 3.5 – 6.0 mM (Peligro &lt; 2.0 mM)</div>
+          <div class="progress-track"><div class="progress-fill" id="bar-gsh" style="width:80%; background:#10b981;"></div></div>
+        </div>
+
+        <div class="sensor-card" style="grid-column: span 2;">
+          <div class="sensor-top">
+            <span class="sensor-name" style="color:#eab308;">Malondialdehído (MDA — Peroxidación Lipídica)</span>
+            <span class="sensor-val" id="val-mda">0.85 µM</span>
+          </div>
+          <div class="sensor-range">Saludable: 0.4 – 1.2 µM</div>
+          <div class="progress-track"><div class="progress-fill" id="bar-mda" style="width:20%; background:#10b981;"></div></div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+<script>
+  // ============================================================================
+  // 1. ESTADO GLOBAL DEL SISTEMA, CREADOR CUSTOM, NIRS Y TELEMETRÍA USB
+  // ============================================================================
+  const state = {
+    fuente: 'SIM',               // 'SIM' | 'USB'
+    modoECG: 'normal',           // 'normal' | 'stemi' | 'fv' | 'paro' | 'custom'
+    spo2: 98,                    // 60 a 100 (%) - Oxímetro de pulso arterial
+    sto2: 84,                    // 30 a 100 (%) - NIRS periférico antebrazo
+    rso2: 68,                    // 25 a 95 (%)  - NIRS cerebral frontal
+    modoQuimio: 'basal',         // 'basal' | 'radiacion'
+    nivelRadiacion: 'saludable', // 'saludable' | 'ligero' | 'preocupante' | 'peligro'
+    customECG: {
+      bpm: 75,
+      stMv: 0.00,
+      pAmp: 0.12,
+      prMs: 150,
+      qrsMs: 88,
+      tAmp: 0.22
+    },
+    usbBuffer: [],
+    usbStats: {
+      minVal: 1023,
+      maxVal: 0,
+      lastRaw: 0,
+      filterWindow: [],
+      samplesCount: 0,
+      sampleRateHz: 185,
+      lastRateTime: Date.now(),
+      history: [],
+      rrIntervals: [],
+      lastPeakTime: 0,
+      beatsAnalyzed: 0,
+      liveMetrics: {
+        bpm: 0,
+        ritmo: 'CALIBRANDO SEÑAL...',
+        colorBpm: '#38bdf8',
+        ondaP: 'Analizando...',
+        subP: 'Esperando latido',
+        pr: '--- ms',
+        subPr: 'En curso',
+        qrs: '--- ms',
+        subQrs: 'En curso',
+        qtc: '--- ms',
+        subQtc: 'En curso',
+        st: '0.00 mV',
+        subSt: 'Calibrando',
+        esAlerta: false,
+        severidad: 0,
+        colorAlerta: '#10b981',
+        diagnostico: 'Adquiriendo muestras desde sensor físico AD8232 vía USB. Esperando completar 2 ciclos cardíacos para extracción morfológica...',
+        tratamientoTexto: ''
+      }
+    },
+    port: null,
+    reader: null
+  };
+
+  // ============================================================================
+  // 2. EVALUADOR DINÁMICO DEL CREADOR PERSONALIZADO DE ONDA ECG (SLIDERS)
+  // ============================================================================
+  function actualizarCustomECG() {
+    const c = state.customECG;
+    c.bpm = parseInt(document.getElementById('cust-slider-bpm').value, 10);
+    c.stMv = parseFloat(document.getElementById('cust-slider-st').value);
+    c.pAmp = parseFloat(document.getElementById('cust-slider-p').value);
+    c.prMs = parseInt(document.getElementById('cust-slider-pr').value, 10);
+    c.qrsMs = parseInt(document.getElementById('cust-slider-qrs').value, 10);
+    c.tAmp = parseFloat(document.getElementById('cust-slider-t').value);
+
+    document.getElementById('cust-lbl-bpm').textContent = `${c.bpm} LPM`;
+    document.getElementById('cust-lbl-st').textContent = `${c.stMv >= 0 ? '+' : ''}${c.stMv.toFixed(2)} mV`;
+    document.getElementById('cust-lbl-p').textContent = `${c.pAmp.toFixed(2)} mV`;
+    document.getElementById('cust-lbl-pr').textContent = `${c.prMs} ms`;
+    document.getElementById('cust-lbl-qrs').textContent = `${c.qrsMs} ms`;
+    document.getElementById('cust-lbl-t').textContent = `${c.tAmp >= 0 ? '+' : ''}${c.tAmp.toFixed(2)} mV`;
+
+    actualizarInterfazCompleta();
+  }
+
+  function restablecerCustomECG() {
+    document.getElementById('cust-slider-bpm').value = 75;
+    document.getElementById('cust-slider-st').value = 0.00;
+    document.getElementById('cust-slider-p').value = 0.12;
+    document.getElementById('cust-slider-pr').value = 150;
+    document.getElementById('cust-slider-qrs').value = 88;
+    document.getElementById('cust-slider-t').value = 0.22;
+    actualizarCustomECG();
+  }
+
+  function obtenerPerfilCustomECG() {
+    const c = state.customECG;
+    const rrSec = 60 / c.bpm;
+    const qtBaseMs = 260 + c.qrsMs + (c.tAmp < 0 ? 45 : 25);
+    const qtcMs = Math.round(qtBaseMs / Math.sqrt(rrSec));
+
+    let hallazgos = [];
+    let severidad = 0;
+    let colorBpm = '#10b981';
+    let ritmo = 'RITMO PERSONALIZADO NORMAL';
+
+    if (c.bpm < 50) {
+      ritmo = 'BRADICARDIA MARCADA';
+      colorBpm = '#f59e0b';
+      severidad = Math.max(severidad, 2);
+      hallazgos.push(`bradicardia marcada (${c.bpm} LPM)`);
+    } else if (c.bpm < 60) {
+      ritmo = 'BRADICARDIA SINUSAL';
+      colorBpm = '#38bdf8';
+      severidad = Math.max(severidad, 1);
+      hallazgos.push(`bradicardia sinusal (${c.bpm} LPM)`);
+    } else if (c.bpm > 150) {
+      ritmo = 'TAQUICARDIA SEVERA';
+      colorBpm = '#ef4444';
+      severidad = Math.max(severidad, 3);
+      hallazgos.push(`taquicardia severa (${c.bpm} LPM)`);
+    } else if (c.bpm > 100) {
+      ritmo = 'TAQUICARDIA SINUSAL';
+      colorBpm = '#f59e0b';
+      severidad = Math.max(severidad, 1);
+      hallazgos.push(`taquicardia sinusal (${c.bpm} LPM)`);
+    }
+
+    const hayP = c.pAmp >= 0.04;
+    let subPr = 'Normal (120-200)';
+    if (!hayP) {
+      subPr = 'Sin onda P';
+      severidad = Math.max(severidad, 2);
+      hallazgos.push('ausencia de onda P sinusal (ritmo nodal/unión)');
+    } else if (c.prMs > 200) {
+      subPr = '⚠️ PR Prolongado (>200)';
+      severidad = Math.max(severidad, 1);
+      hallazgos.push(`bloqueo AV de 1.er grado (PR ${c.prMs} ms)`);
+    } else if (c.prMs < 120) {
+      subPr = '⚠️ PR Corto (<120)';
+      severidad = Math.max(severidad, 1);
+      hallazgos.push(`preexcitación / PR corto (${c.prMs} ms)`);
+    }
+
+    const qrsAncho = c.qrsMs >= 120;
+    if (qrsAncho) {
+      severidad = Math.max(severidad, 2);
+      hallazgos.push(`complejo QRS ensanchado (${c.qrsMs} ms, sugiere bloqueo de rama o ritmo ventricular)`);
+    }
+
+    let subSt = 'Isoeléctrico';
+    let esAlertaST = false;
+    if (c.stMv >= 0.15) {
+      ritmo = '⚠️ SUPRADESNIVEL ST (IAMCEST)';
+      colorBpm = '#ef4444';
+      subSt = '🚨 SUPRADESNIVEL ST';
+      esAlertaST = true;
+      severidad = 3;
+      hallazgos.push(`elevación crítica del segmento ST (${c.stMv >= 0 ? '+' : ''}${c.stMv.toFixed(2)} mV) compatible con lesión subepicárdica / IAMCEST`);
+    } else if (c.stMv <= -0.10) {
+      ritmo = '⚠️ INFRADESNIVEL ST (ISQUEMIA)';
+      colorBpm = '#f59e0b';
+      subSt = '⚠️ INFRADESNIVEL ST';
+      esAlertaST = true;
+      severidad = Math.max(severidad, 2);
+      hallazgos.push(`depresión del segmento ST (${c.stMv.toFixed(2)} mV) compatible con isquemia subendocárdica`);
+    }
+
+    if (c.tAmp <= -0.10) {
+      severidad = Math.max(severidad, 2);
+      hallazgos.push(`onda T invertida (${c.tAmp.toFixed(2)} mV)`);
+    } else if (c.tAmp >= 0.45) {
+      severidad = Math.max(severidad, 1);
+      hallazgos.push(`onda T picuda/hiperaguda (+${c.tAmp.toFixed(2)} mV)`);
+    }
+
+    let diag = '';
+    let tratamientoTexto = '';
+
+    if (hallazgos.length === 0) {
+      diag = `TRAZADO PERSONALIZADO NOMINAL: Ritmo sinusal a ${c.bpm} LPM, onda P presente (+${c.pAmp.toFixed(2)} mV), PR ${c.prMs} ms, QRS estrecho (${c.qrsMs} ms) y segmento ST isoeléctrico (${c.stMv >= 0 ? '+' : ''}${c.stMv.toFixed(2)} mV).`;
+    } else {
+      diag = `TRAZADO PERSONALIZADO (${c.bpm} LPM): Se detecta ${hallazgos.join(', ')}. QTc estimado en ${qtcMs} ms.`;
+
+      if (c.stMv >= 0.15) {
+        tratamientoTexto = '• <b>🚨 Protocolo IAMCEST (Primera Línea Urgente):</b> Activar <b>Código Infarto / reperfusión coronaria inmediata</b> (angioplastia primaria o fibrinólisis) + doble antiagregación plaquetaria (Aspirina + inhibidor P2Y12).<br>• <b>Coadyuvante (Manful et al., 2025):</b> CoQ10 (200 mg) + NAC (600 mg) como soporte frente a lesión por reperfusión (no sustituye la reperfusión).';
+      } else if (c.stMv <= -0.10 || c.tAmp <= -0.10) {
+        tratamientoTexto = '• <b>⚠️ Síndrome Coronario Agudo sin Elevación ST / Isquemia:</b> Reposo absoluto, monitorización continua, troponinas seriadas, antiagregación (Aspirina) y valoración cardiológica urgente.';
+      } else if (c.bpm > 150) {
+        tratamientoTexto = '• <b>🚨 Taquiarritmia Severa (&gt;150 LPM):</b> Evaluar estabilidad hemodinámica y aplicar protocolo ACLS de taquicardia (maniobras vagales / adenosina o cardioversión según estabilidad).';
+      } else if (c.bpm < 50) {
+        tratamientoTexto = '• <b>⚠️ Bradicardia Marcada (&lt;50 LPM):</b> Evaluar perfusión y síntomas; si hay inestabilidad hemodinámica, administrar Atropina 1 mg IV según protocolo ACLS.';
+      } else {
+        tratamientoTexto = '• <b>Conducta Clínica (Onda Personalizada):</b> Realizar ECG estándar de 12 derivaciones para confirmar trastornos de conducción/repolarización y correlacionar con clínica del paciente.';
+      }
+    }
+
+    return {
+      bpm: c.bpm,
+      ritmo,
+      colorBpm,
+      ondaP: hayP ? 'Presente' : 'Ausente',
+      subP: hayP ? `Amplitud (+${c.pAmp.toFixed(2)} mV)` : '0.00 mV (Sin onda P)',
+      pr: hayP ? `${c.prMs} ms` : '---',
+      subPr,
+      qrs: `${c.qrsMs} ms`,
+      subQrs: qrsAncho ? '⚠️ QRS Ancho (≥120)' : 'Estrecho (<120)',
+      qtc: `${qtcMs} ms`,
+      subQtc: qtcMs <= 450 ? 'Normal (<450)' : '⚠️ QTc Prolongado',
+      st: `${c.stMv >= 0 ? '+' : ''}${c.stMv.toFixed(2)} mV`,
+      subSt,
+      esAlerta: esAlertaST,
+      severidad,
+      diag,
+      tratamientoTexto
+    };
+  }
+
+  // ============================================================================
+  // 3. EVALUADOR CLÍNICO DE OXIMETRÍA DUAL: ARTERIAL (SpO2) + NIRS (StO2 / rSO2)
+  // ============================================================================
+  function obtenerEstadoOximetro(valor) {
+    const spo2 = parseInt(valor, 10);
+    if (spo2 >= 95) {
+      return {
+        categoria: 'sano',
+        badge: 'SANO (95–100%)',
+        color: '#10b981',
+        bgBadge: 'rgba(16, 185, 129, 0.15)',
+        borderBadge: 'rgba(16, 185, 129, 0.4)',
+        textColorBadge: '#6ee7b7',
+        accionHtml: '<b style="color:#10b981;">Estado Sano:</b> Saturación arterial normal. Sin necesidad de estudios adicionales ni oxígeno suplementario.',
+        severidad: 0
+      };
+    } else if (spo2 >= 90) {
+      return {
+        categoria: 'leve',
+        badge: 'HIPOXIA LEVE (90–94%)',
+        color: '#38bdf8',
+        bgBadge: 'rgba(56, 189, 248, 0.15)',
+        borderBadge: 'rgba(56, 189, 248, 0.45)',
+        textColorBadge: '#7dd3fc',
+        accionHtml: '<b style="color:#38bdf8;">Hipoxia Leve — Recomendación:</b> Realizar <b>estudios clínicos</b> (gasometría arterial, espirometría / evaluación respiratoria) y mantener monitoreo continuo.',
+        severidad: 1
+      };
+    } else if (spo2 >= 85) {
+      return {
+        categoria: 'moderada',
+        badge: 'HIPOXIA MODERADA (85–89%)',
+        color: '#f59e0b',
+        bgBadge: 'rgba(245, 158, 11, 0.2)',
+        borderBadge: 'rgba(245, 158, 11, 0.5)',
+        textColorBadge: '#fcd34d',
+        accionHtml: '<b style="color:#f59e0b;">Hipoxia Moderada — Recomendación:</b> Iniciar <b>oxigenoterapia inmediata</b> (cánula nasal o mascarilla simple para llevar SpO₂ ≥ 94%).',
+        severidad: 2
+      };
+    } else {
+      return {
+        categoria: 'grave',
+        badge: '🚨 HIPOXEMIA GRAVE (≤ 84%)',
+        color: '#ef4444',
+        bgBadge: 'rgba(239, 68, 68, 0.25)',
+        borderBadge: '#ef4444',
+        textColorBadge: '#fca5a5',
+        accionHtml: '<b style="color:#ef4444;">🚨 HIPOXEMIA GRAVE — URGENCIA:</b> Solicitar <b>atención médica urgente</b> y <b>administrar oxígeno concentrado</b> de alto flujo de inmediato.',
+        severidad: 3
+      };
+    }
+  }
+
+  function obtenerEstadoNIRS(sto2Val, rso2Val, spo2Val) {
+    const sto2 = parseInt(sto2Val, 10);
+    const rso2 = parseInt(rso2Val, 10);
+    const spo2 = parseInt(spo2Val, 10);
+
+    // Evaluar StO2 periférica (antebrazo / tenar — umbral shock < 75%, crítico < 60%)
+    let sevSto2 = 0;
+    let colorSto2 = '#10b981';
+    let catSto2 = 'ok';
+    if (sto2 < 60) {
+      sevSto2 = 3; colorSto2 = '#ef4444'; catSto2 = 'crit';
+    } else if (sto2 < 75) {
+      sevSto2 = 2; colorSto2 = '#f59e0b'; catSto2 = 'warn';
+    }
+
+    // Evaluar rSO2 cerebral (frontal — umbral intervención < 50%, crítico < 45%)
+    let sevRso2 = 0;
+    let colorRso2 = '#10b981';
+    let catRso2 = 'ok';
+    if (rso2 < 45) {
+      sevRso2 = 3; colorRso2 = '#ef4444'; catRso2 = 'crit';
+    } else if (rso2 < 50) {
+      sevRso2 = 2; colorRso2 = '#f59e0b'; catRso2 = 'warn';
+    } else if (rso2 < 55) {
+      sevRso2 = 1; colorRso2 = '#38bdf8'; catRso2 = 'warn';
+    }
+
+    const sevMaxNirs = Math.max(sevSto2, sevRso2);
+    const colorBorde = sevMaxNirs === 3 ? '#ef4444' : (sevMaxNirs === 2 ? '#f59e0b' : (sevMaxNirs === 1 ? '#38bdf8' : '#38bdf8'));
+
+    let boxHtml = '';
+    if (sevMaxNirs === 0) {
+      boxHtml = '<b style="color:#10b981;">Perfusión Tisular Nominal:</b> Entrega y consumo de O₂ equilibrados en músculo periférico (StO₂ ≥ 75%) y corteza frontal (rSO₂ ≥ 55%).';
+    } else if (spo2 >= 95 && sevSto2 >= 2 && sevRso2 === 0) {
+      boxHtml = `<b style="color:#f59e0b;">Hipoperfusión Periférica Oculta (SpO₂ ${spo2}% normal, StO₂ ${sto2}%):</b> Vasoconstricción temprana por centralización circulatoria (detecta déficit de perfusión antes que el lactato).`;
+    } else if (sevRso2 >= 2 && sevSto2 === 0) {
+      boxHtml = `<b style="color:#ef4444;">Desaturación Cerebral Regional (rSO₂ ${rso2}%):</b> Desajuste entre flujo sanguíneo cerebral y demanda cortical. Riesgo de isquemia/disfunción neurológica.`;
+    } else {
+      boxHtml = `<b style="color:#ef4444;">Compromiso Tisular y Cerebral NIRS (StO₂ ${sto2}%, rSO₂ ${rso2}%):</b> Hipoperfusión sistémica severa con caída crítica de oxigenación tisular.`;
+    }
+
+    return {
+      sevSto2, colorSto2, catSto2,
+      sevRso2, colorRso2, catRso2,
+      sevMaxNirs, colorBorde, boxHtml
+    };
+  }
+
+  function evaluarOxigenacionIntegrada(spo2, sto2, rso2) {
+    const ox = obtenerEstadoOximetro(spo2);
+    const nirs = obtenerEstadoNIRS(sto2, rso2, spo2);
+    const severidadTotal = Math.max(ox.severidad, nirs.sevMaxNirs);
+
+    let resumen = `SpO₂ ${spo2}% (Arterial) • StO₂ ${sto2}% (NIRS Antebrazo) • rSO₂ ${rso2}% (NIRS Frontal): `;
+    let acciones = [];
+
+    if (severidadTotal === 0) {
+      resumen += 'Oxigenación arterial, perfusión muscular periférica y flujo cortical cerebral en equilibrio nominal.';
+    } else {
+      // Diagnóstico cruzado SpO2 vs NIRS
+      if (spo2 >= 95 && sto2 < 75) {
+        resumen += `⚠️ HIPOPERFUSIÓN PERIFÉRICA OCULTA: SpO₂ arterial normal (${spo2}%), pero NIRS de antebrazo descendió a ${sto2}% (<75%), indicando vasoconstricción compensatoria temprana (centralización circulatoria). `;
+      } else if (spo2 < 95) {
+        resumen += `Hipoxemia arterial (SpO₂ ${spo2}%). `;
+      }
+
+      if (rso2 < 50) {
+        resumen += `🚨 DESATURACIÓN CEREBRAL REGIONAL (rSO₂ ${rso2}% < 50%): Riesgo de hipoperfusión cortical. `;
+      } else if (sto2 < 60 && spo2 < 95) {
+        resumen += `🚨 SHOCK / HIPOXIA TISULAR SEVERA (StO₂ ${sto2}%). `;
+      }
+
+      // Conductas terapéuticas diferenciadas
+      if (spo2 <= 84) {
+        acciones.push(`• <b>🚨 Oxigenación Arterial (${spo2}% — Hipoxemia Grave):</b> Activar <b>atención médica urgente</b> y <b>administrar oxígeno concentrado</b> de alto flujo (mascarilla con reservorio) de inmediato.`);
+      } else if (spo2 <= 89) {
+        acciones.push(`• <b>Oxigenación Arterial (${spo2}% — Hipoxia Moderada):</b> Iniciar <b>oxigenoterapia inmediata</b> (cánula nasal o mascarilla simple, meta SpO₂ ≥ 94%).`);
+      } else if (spo2 <= 94) {
+        acciones.push(`• <b>Oxigenación Arterial (${spo2}% — Hipoxia Leve):</b> Realizar <b>estudios clínicos respiratorios</b> (gasometría arterial y valoración pulmonar) y vigilancia continua.`);
+      }
+
+      if (sto2 < 60) {
+        acciones.push(`• <b>🚨 NIRS Periférico Crítico (StO₂ ${sto2}% &lt; 60%):</b> Signo de shock / hipoperfusión grave. Reanimación hemodinámica urgente (reposición de volemia / soporte vasoactivo) y control de lactato.`);
+      } else if (sto2 < 75) {
+        acciones.push(`• <b>⚠️ NIRS Periférico Alerta (StO₂ ${sto2}% &lt; 75%):</b> Evaluar estado de hidratación, gasto cardíaco y pérdida oculta de volumen antes de que aparezca hipotensión sistémica.`);
+      }
+
+      if (rso2 < 45) {
+        acciones.push(`• <b>🚨 NIRS Cerebral Crítico (rSO₂ ${rso2}% &lt; 45%):</b> Urgencia neurológica/hemodinámica: optimizar presión de perfusión cerebral (PAM), posición cefálica neutra y corregir anemia/hipoxia.`);
+      } else if (rso2 < 50) {
+        acciones.push(`• <b>⚠️ NIRS Cerebral Bajo (rSO₂ ${rso2}% &lt; 50%):</b> Verificar presión arterial media, gasto cardíaco y ventilación para restaurar rSO₂ ≥ 55%.`);
+      }
+    }
+
+    return {
+      ox,
+      nirs,
+      severidadTotal,
+      resumen,
+      tratamientoTexto: acciones.join('<br>')
+    };
+  }
+
+  function cambiarSpo2(valor) {
+    if (state.fuente === 'USB') return;
+    state.spo2 = parseInt(valor, 10);
+    document.getElementById('ox-slider').value = state.spo2;
+    actualizarInterfazCompleta();
+  }
+
+  function seleccionarPresetOximetro(valor) {
+    if (state.fuente === 'USB') return;
+    cambiarSpo2(valor);
+  }
+
+  function cambiarNIRS(canal, valor) {
+    if (state.fuente === 'USB') return;
+    const val = parseInt(valor, 10);
+    if (canal === 'sto2') {
+      state.sto2 = val;
+      document.getElementById('sto2-slider').value = val;
+    } else {
+      state.rso2 = val;
+      document.getElementById('rso2-slider').value = val;
+    }
+    actualizarInterfazCompleta();
+  }
+
+  // ============================================================================
+  // 4. BASE DE DATOS DE LOS 4 RANGOS DE RADIACIÓN / RONSS (MANFUL ET AL., 2025)
+  // ============================================================================
+  const RANGOS_RADIACION = {
+    saludable: {
+      etiqueta: 'Saludable (Basal)',
+      color: '#10b981',
+      severidad: 0,
+      h2o2: 1.20, pH2o2: 15, cH2o2: '#10b981',
+      o2: 0.15,   pO2: 18,   cO2: '#10b981',
+      onoo: 12,   pOnoo: 14, cOnoo: '#10b981',
+      no: 35,     pNo: 35,   cNo: '#10b981',
+      gsh: 4.80,  pGsh: 80,  cGsh: '#10b981',
+      mda: 0.85,  pMda: 20,  cMda: '#10b981',
+      resumen: 'Rango Saludable: Especies reactivas (H₂O₂: 1.20 µM, O₂•⁻: 0.15 nM) dentro de parámetros normales y Glutatión óptimo (4.80 mM).',
+      tratamientoTexto: ''
+    },
+    ligero: {
+      etiqueta: 'Ligero (Exposición Baja)',
+      color: '#38bdf8',
+      severidad: 1,
+      h2o2: 4.80, pH2o2: 38, cH2o2: '#38bdf8',
+      o2: 0.65,   pO2: 36,   cO2: '#38bdf8',
+      onoo: 30,   pOnoo: 30, cOnoo: '#38bdf8',
+      no: 40,     pNo: 40,   cNo: '#10b981',
+      gsh: 3.60,  pGsh: 62,  cGsh: '#38bdf8',
+      mda: 1.55,  pMda: 36,  cMda: '#38bdf8',
+      resumen: 'Rango Ligero: Elevación leve de H₂O₂ (4.80 µM) y O₂•⁻ (0.65 nM) por radiación ambiental/baja dosis. Reserva de GSH aún funcional (3.60 mM).',
+      tratamientoTexto: '• <b>Radiación Ligera (1 sola pastilla):</b> Administrar <b>1 única tableta de N-Acetilcisteína (NAC 600 mg vía oral)</b> para aportar cisteína y neutralizar radicales hidroxilo iniciales.'
+    },
+    preocupante: {
+      etiqueta: 'Preocupante (Exposición Moderada)',
+      color: '#f59e0b',
+      severidad: 2,
+      h2o2: 11.50, pH2o2: 68, cH2o2: '#f59e0b',
+      o2: 1.55,    pO2: 65,   cO2: '#f59e0b',
+      onoo: 68,    pOnoo: 60, cOnoo: '#f59e0b',
+      no: 55,      pNo: 55,   cNo: '#f59e0b',
+      gsh: 2.35,   pGsh: 40,  cGsh: '#f59e0b',
+      mda: 2.85,   pMda: 64,  cMda: '#f59e0b',
+      resumen: 'Rango Preocupante: Estrés oxidativo moderado (H₂O₂: 11.5 µM, MDA: 2.85 µM) con descenso progresivo de Glutatión (2.35 mM).',
+      tratamientoTexto: '• <b>Radiación Preocupante:</b> Iniciar esquema de soporte con <b>NAC 600 mg cada 12 horas</b> + <b>Coenzima Q10 (CoQ10 100 mg/día)</b> durante 5 a 7 días y evaluación médica.'
+    },
+    peligro: {
+      etiqueta: 'Peligro / Crítico (Exposición Aguda Severa)',
+      color: '#ef4444',
+      severidad: 3,
+      h2o2: 21.80, pH2o2: 96, cH2o2: '#ef4444',
+      o2: 2.95,    pO2: 94,   cO2: '#ef4444',
+      onoo: 135,   pOnoo: 90, cOnoo: '#ef4444',
+      no: 88,      pNo: 82,   cNo: '#ef4444',
+      gsh: 1.25,   pGsh: 18,  cGsh: '#ef4444',
+      mda: 4.50,   pMda: 90,  cMda: '#ef4444',
+      resumen: '🚨 RANGO PELIGRO (CRÍTICO): Tormenta oxidativa por radiación aguda (H₂O₂: 21.8 µM, O₂•⁻: 2.95 nM) y depleción crítica de GSH (1.25 mM < 2.0 mM).',
+      tratamientoTexto: '• <b>🚨 Radiación Crítica (Iniciar Tratamiento Ya):</b> Atención médica urgente + protocolo antioxidante intensivo con <b>NAC (dosis de carga 140 mg/kg VO o IV)</b> + <b>CoQ10 (200–300 mg/día)</b> e hidratación.'
+    }
+  };
+
+  // ============================================================================
+  // 5. PERFILES ECG PREDEFINIDOS
+  // ============================================================================
+  const PERFILES_ECG = {
+    normal: {
+      bpm: 77, ritmo: 'RITMO SINUSAL', colorBpm: '#10b981',
+      ondaP: 'Presente', subP: 'Sinusal (+)',
+      pr: '150 ms', subPr: 'Normal (120-200)',
+      qrs: '88 ms', subQrs: 'Estrecho (<120)',
+      qtc: '395 ms', subQtc: 'Normal (<440)',
+      st: '+0.01 mV', subSt: 'Isoeléctrico', esAlerta: false, severidad: 0,
+      diag: 'Ritmo sinusal normal a 77 LPM. Conducción AV conservada y segmento ST isoeléctrico sin signos de isquemia aguda.',
+      tratamientoTexto: ''
+    },
+    stemi: {
+      bpm: 98, ritmo: 'TAQUICARDIA • IAMCEST', colorBpm: '#ef4444',
+      ondaP: 'Presente', subP: 'Sinusal (+)',
+      pr: '162 ms', subPr: 'Normal (120-200)',
+      qrs: '98 ms', subQrs: 'Normal (<120)',
+      qtc: '415 ms', subQtc: 'Normal (<440)',
+      st: '+0.28 mV', subSt: '🚨 SUPRADESNIVEL ST', esAlerta: true, severidad: 3,
+      diag: 'ALERTA CRÍTICA: Elevación marcada del segmento ST (+0.28 mV ≥ 0.15 mV) con onda T hiperaguda. Hallazgo compatible con Infarto Agudo de Miocardio con Elevación del ST (IAMCEST / STEMI).',
+      tratamientoTexto: '• <b>🚨 Infarto Agudo (STEMI — Primera Línea Urgente):</b> Activar <b>Código Infarto / traslado inmediato a hemodinamia para reperfusión coronaria</b> (angioplastia primaria o fibrinólisis) + terapia antiagregante (<b>Ácido Acetilsalicílico + inhibidor P2Y12</b>) y anticoagulación.<br>• <b>Soporte Coadyuvante (Manful et al., 2025):</b> <b>CoQ10 (200 mg) + NAC (600 mg)</b> únicamente como terapia complementaria frente al estrés oxidativo por isquemia-reperfusión (<b>no sustituye la reperfusión</b>).'
+    },
+    fv: {
+      bpm: 245, ritmo: 'FIBRILACIÓN VENTRICULAR', colorBpm: '#ef4444',
+      ondaP: 'Ausente', subP: 'Caótica',
+      pr: '---', subPr: 'No medible',
+      qrs: '165 ms', subQrs: 'Desorganizado',
+      qtc: '---', subQtc: 'No medible',
+      st: 'Indeterminado', subSt: 'Ondas FV', esAlerta: true, severidad: 3,
+      diag: 'EMERGENCIA VITAL: Fibrilación ventricular (245 LPM). Actividad eléctrica caótica sin gasto cardíaco efectivo. Paro cardiorrespiratorio desfibrilable.',
+      tratamientoTexto: '• <b>🚨 Emergencia Vital (FV — Protocolo ACLS):</b> Realizar <b>desfibrilación eléctrica inmediata (choque no sincronizado)</b> + iniciar <b>RCP de alta calidad</b> (100–120 compresiones/min) y fármacos ACLS (adrenalina / amiodarona). Soporte redox solo en fase post-reanimación.'
+    },
+    paro: {
+      bpm: 0, ritmo: 'ASISTOLIA / PARO', colorBpm: '#ef4444',
+      ondaP: 'Ausente', subP: 'Sin actividad',
+      pr: '---', subPr: 'Sin actividad',
+      qrs: '0 ms', subQrs: 'Ausente',
+      qtc: '---', subQtc: 'Sin actividad',
+      st: '0.00 mV', subSt: 'Línea Isoeléctrica', esAlerta: true, severidad: 3,
+      diag: 'EMERGENCIA VITAL: Asistolia ventricular (0 LPM). Ausencia total de despolarización miocárdica. Ritmo no desfibrilable.',
+      tratamientoTexto: '• <b>🚨 Emergencia Vital (Asistolia — Protocolo ACLS):</b> Iniciar <b>RCP de alta calidad de inmediato</b> + administrar <b>Adrenalina 1 mg IV/IO cada 3–5 min</b> (no desfibrilar) y tratar causas reversibles (5H y 5T).'
+    }
+  };
+
+  // ============================================================================
+  // 6. ANALIZADOR MORFOLÓGICO Y DIAGNÓSTICO EN TIEMPO REAL PARA ARDUINO (USB)
+  // ============================================================================
+  function procesarLatidoUSB(peakIndex) {
+    const hist = state.usbStats.history;
+    if (hist.length < 120) return;
+
+    const peakSample = hist[peakIndex];
+    const now = peakSample.t;
+
+    if (state.usbStats.lastPeakTime > 0) {
+      const rrMs = now - state.usbStats.lastPeakTime;
+      if (rrMs >= 420 && rrMs <= 2000) {
+        state.usbStats.rrIntervals.push(rrMs);
+        if (state.usbStats.rrIntervals.length > 6) state.usbStats.rrIntervals.shift();
+      }
+    }
+    state.usbStats.lastPeakTime = now;
+    state.usbStats.beatsAnalyzed++;
+    document.getElementById('usb-beats-val').textContent = state.usbStats.beatsAnalyzed;
+
+    const avgRR = state.usbStats.rrIntervals.length > 0
+      ? state.usbStats.rrIntervals.reduce((a, b) => a + b, 0) / state.usbStats.rrIntervals.length
+      : 1000;
+    const bpm = Math.round(60000 / avgRR);
+
+    const vals = hist.map(s => s.v).sort((a, b) => a - b);
+    const baseline = vals[Math.floor(vals.length * 0.45)];
+    const rHeight = Math.max(peakSample.v - baseline, 15);
+    const adcPerMv = rHeight;
+
+    let qIdx = peakIndex;
+    while (qIdx > 0 && (hist[qIdx].v - baseline) > rHeight * 0.15 && (now - hist[qIdx].t) < 90) qIdx--;
+    let jIdx = peakIndex;
+    while (jIdx < hist.length - 1 && (hist[jIdx].v - baseline) > rHeight * 0.15 && (hist[jIdx].t - now) < 90) jIdx++;
+    const qrsMs = Math.max(60, Math.min(180, Math.round(hist[jIdx].t - hist[qIdx].t)));
+
+    let maxP = -Infinity;
+    let pTime = now - 150;
+    for (let i = qIdx; i >= 0; i--) {
+      const dt = now - hist[i].t;
+      if (dt > 230) break;
+      if (dt >= 55 && hist[i].v > maxP) {
+        maxP = hist[i].v;
+        pTime = hist[i].t;
+      }
+    }
+    const pAmpMv = (maxP - baseline) / adcPerMv;
+    const hayOndaP = pAmpMv > 0.06 && pAmpMv < 0.45;
+    const prMs = hayOndaP ? Math.max(110, Math.min(220, Math.round(hist[qIdx].t - pTime))) : 0;
+
+    const stTargetTime = hist[jIdx].t + 60;
+    let stSample = hist[jIdx];
+    let tPeakTime = hist[jIdx].t + 240;
+    let maxT = -Infinity;
+
+    for (let i = jIdx; i < hist.length; i++) {
+      const dtJ = hist[i].t - hist[jIdx].t;
+      if (Math.abs(hist[i].t - stTargetTime) < 15) stSample = hist[i];
+      if (dtJ >= 100 && dtJ <= 340 && hist[i].v > maxT) {
+        maxT = hist[i].v;
+        tPeakTime = hist[i].t;
+      }
+    }
+    const stMv = (stSample.v - baseline) / adcPerMv;
+    const qtMs = Math.max(300, Math.min(480, Math.round((tPeakTime - hist[qIdx].t) + 70)));
+    const qtcMs = Math.round(qtMs / Math.sqrt(avgRR / 1000));
+
+    const saturatedSamples = hist.slice(-100).filter(s => s.v >= 950 || s.v <= 30).length;
+    const hayArtefacto = saturatedSamples > 12;
+
+    const lm = state.usbStats.liveMetrics;
+    lm.bpm = bpm;
+    lm.ondaP = hayOndaP ? 'Presente' : 'Atenuada';
+    lm.subP = hayOndaP ? `Sinusal (+${pAmpMv.toFixed(2)} mV)` : 'Baja amplitud / Ruido';
+    lm.pr = hayOndaP ? `${prMs} ms` : '---';
+    lm.subPr = (prMs >= 120 && prMs <= 200) ? 'Normal (120-200)' : (prMs > 200 ? 'PR Prolongado' : 'Variabilidad');
+    lm.qrs = `${qrsMs} ms`;
+    lm.subQrs = qrsMs < 120 ? 'Estrecho (<120)' : '⚠️ QRS Ancho';
+    lm.qtc = `${qtcMs} ms`;
+    lm.subQtc = qtcMs <= 450 ? 'Normal (<450)' : '⚠️ QTc Prolongado';
+    lm.st = `${stMv >= 0 ? '+' : ''}${stMv.toFixed(2)} mV`;
+
+    if (hayArtefacto) {
+      lm.ritmo = 'SATURACIÓN / INTERFERENCIA ELÉCTRICA';
+      lm.colorBpm = '#f59e0b';
+      lm.subSt = 'Revisar electrodos / 60 Hz';
+      lm.esAlerta = true;
+      lm.severidad = 2;
+      lm.colorAlerta = '#f59e0b';
+      lm.diagnostico = `Señal AD8232 con saturación/interferencia (ADC ${state.usbStats.lastRaw}). Frecuencia estimada: ${bpm} LPM. Verifique contacto de electrodos RA/LA/LL y desconecte el cargador de corriente alterna si hay ruido de 60 Hz.`;
+      lm.tratamientoTexto = '• <b>Conducta Técnica (AD8232):</b> Estabilizar contacto de electrodos y eliminar ruido de red (60 Hz) antes de validar clínicamente el segmento ST.';
+    } else if (stMv >= 0.15) {
+      lm.ritmo = '⚠️ POSIBLE SUPRADESNIVEL ST';
+      lm.colorBpm = '#ef4444';
+      lm.subSt = '🚨 Supradesnivel ST';
+      lm.esAlerta = true;
+      lm.severidad = 3;
+      lm.colorAlerta = '#ef4444';
+      lm.diagnostico = `HALLAZGO EN TIEMPO REAL (USB): Frecuencia de ${bpm} LPM con elevación del segmento ST de ${lm.st} (≥ +0.15 mV) y QTc de ${qtcMs} ms. Sugiere corriente de lesión subepicárdica (verificar con ECG de 12 derivaciones).`;
+      lm.tratamientoTexto = '• <b>🚨 Protocolo ante Sospecha de Infarto (STEMI):</b> Confirmar con ECG clínico de 12 derivaciones y activar <b>atención cardiológica urgente para reperfusión coronaria</b> (angioplastia / fibrinólisis) + antiagregación plaquetaria.<br>• <b>Coadyuvante (Manful et al., 2025):</b> CoQ10 (200 mg) + NAC (600 mg) solo como soporte frente a lesión por reperfusión, sin reemplazar el manejo de urgencia.';
+    } else if (bpm < 60) {
+      lm.ritmo = 'BRADICARDIA SINUSAL';
+      lm.colorBpm = '#38bdf8';
+      lm.subSt = 'Isoeléctrico';
+      lm.esAlerta = false;
+      lm.severidad = 0;
+      lm.colorAlerta = '#38bdf8';
+      lm.diagnostico = `LECTURA EN TIEMPO REAL (USB): Bradicardia sinusal a ${bpm} LPM (R-R: ${Math.round(avgRR)} ms). QRS estrecho (${qrsMs} ms) y segmento ST isoeléctrico (${lm.st}) sin isquemia.`;
+      lm.tratamientoTexto = '• <b>Conducta Clínica:</b> Si el paciente está asintomático (reposo/tono vagal), mantener observación sin fármacos. Si presenta mareo o hipotensión, valorar atropina según protocolo médico.';
+    } else if (bpm > 100) {
+      lm.ritmo = 'TAQUICARDIA SINUSAL';
+      lm.colorBpm = '#f59e0b';
+      lm.subSt = 'Isoeléctrico';
+      lm.esAlerta = true;
+      lm.severidad = 1;
+      lm.colorAlerta = '#f59e0b';
+      lm.diagnostico = `LECTURA EN TIEMPO REAL (USB): Taquicardia sinusal a ${bpm} LPM. Conducción AV conservada (PR: ${prMs} ms, QRS: ${qrsMs} ms) y segmento ST estable (${lm.st}).`;
+      lm.tratamientoTexto = '• <b>Conducta Clínica:</b> Identificar y corregir la causa desencadenante (esfuerzo físico, ansiedad, fiebre, deshidratación o hipoxia). No requiere antioxidantes ni antiarrítmicos directos.';
+    } else {
+      lm.ritmo = 'RITMO SINUSAL NORMAL';
+      lm.colorBpm = '#10b981';
+      lm.subSt = 'Isoeléctrico';
+      lm.esAlerta = false;
+      lm.severidad = 0;
+      lm.colorAlerta = '#10b981';
+      lm.diagnostico = `LECTURA EN TIEMPO REAL (USB): Ritmo sinusal normal a ${bpm} LPM. Onda P presente, PR de ${prMs} ms, QRS estrecho (${qrsMs} ms) y segmento ST isoeléctrico (${lm.st}).`;
+      lm.tratamientoTexto = '';
+    }
+
+    actualizarInterfazCompleta();
+  }
+
+  // ============================================================================
+  // 7. LÓGICA DE SELECCIÓN Y ACOPLAMIENTO BIDIRECCIONAL
+  // ============================================================================
+  function seleccionarModoECG(nuevoModo) {
+    if (state.fuente === 'USB') return;
+    state.modoECG = nuevoModo;
+
+    const customBuilder = document.getElementById('custom-ecg-builder');
+    customBuilder.style.display = (nuevoModo === 'custom') ? 'flex' : 'none';
+
+    const regla = document.getElementById('select-ecg-to-quimio').value;
+    if (regla === 'saludable' || nuevoModo === 'normal' || nuevoModo === 'custom') {
+      state.modoQuimio = 'basal';
+      state.nivelRadiacion = 'saludable';
+    } else {
+      state.modoQuimio = 'radiacion';
+      state.nivelRadiacion = (nuevoModo === 'stemi') ? 'preocupante' : 'peligro';
+    }
+    actualizarInterfazCompleta();
+  }
+
+  function seleccionarModoPrincipalQuimio(modo) {
+    if (state.fuente === 'USB') return;
+    state.modoQuimio = modo;
+
+    if (modo === 'basal') {
+      state.nivelRadiacion = 'saludable';
+    } else if (modo === 'radiacion' && state.nivelRadiacion === 'saludable') {
+      state.nivelRadiacion = 'ligero';
+    }
+    aplicarAcoplamientoHaciaECG();
+    actualizarInterfazCompleta();
+  }
+
+  function seleccionarNivelRadiacion(nivel) {
+    if (state.fuente === 'USB') return;
+    state.nivelRadiacion = nivel;
+    state.modoQuimio = (nivel === 'saludable') ? 'basal' : 'radiacion';
+
+    aplicarAcoplamientoHaciaECG();
+    actualizarInterfazCompleta();
+  }
+
+  function aplicarAcoplamientoHaciaECG() {
+    if (state.modoECG === 'custom') return;
+    const regla = document.getElementById('select-quimio-to-ecg').value;
+    if (regla === 'normal' || state.nivelRadiacion === 'saludable') {
+      state.modoECG = 'normal';
+    } else {
+      state.modoECG = (state.nivelRadiacion === 'peligro') ? 'stemi' : 'normal';
+    }
+  }
+
+  function onCambioAcoplamientoECG() {
+    if (state.fuente === 'SIM') seleccionarModoECG(state.modoECG);
+  }
+
+  function onCambioAcoplamientoQuimio() {
+    if (state.fuente === 'SIM') {
+      aplicarAcoplamientoHaciaECG();
+      actualizarInterfazCompleta();
+    }
+  }
+
+  function configurarModoFuente(fuente) {
+    state.fuente = fuente;
+    const mainGrid = document.getElementById('main-grid');
+    const rightSimPanel = document.getElementById('right-sim-panel');
+    const simEcgButtons = document.getElementById('sim-ecg-buttons');
+    const customBuilder = document.getElementById('custom-ecg-builder');
+    const syncBar = document.getElementById('sync-bar');
+    const diagSectionOx = document.getElementById('diag-section-ox');
+    const diagSectionQuimio = document.getElementById('diag-section-quimio');
+    const liveMon = document.getElementById('usb-live-monitor');
+
+    if (fuente === 'USB') {
+      state.usbBuffer = [];
+      state.usbStats.filterWindow = [];
+      state.usbStats.history = [];
+      state.usbStats.rrIntervals = [];
+      state.usbStats.lastPeakTime = 0;
+      state.usbStats.beatsAnalyzed = 0;
+      state.usbStats.minVal = 1023;
+      state.usbStats.maxVal = 0;
+
+      rightSimPanel.style.display = 'none';
+      mainGrid.classList.add('usb-single-mode');
+      simEcgButtons.style.display = 'none';
+      customBuilder.style.display = 'none';
+      syncBar.style.display = 'none';
+      diagSectionOx.style.display = 'none';
+      diagSectionQuimio.style.display = 'none';
+
+      liveMon.style.display = 'block';
+    } else {
+      rightSimPanel.style.display = 'flex';
+      mainGrid.classList.remove('usb-single-mode');
+      simEcgButtons.style.display = 'flex';
+      customBuilder.style.display = (state.modoECG === 'custom') ? 'flex' : 'none';
+      syncBar.style.display = 'flex';
+      diagSectionOx.style.display = 'block';
+      diagSectionQuimio.style.display = 'block';
+
+      liveMon.style.display = 'none';
+    }
+
+    resizeCanvas();
+    actualizarInterfazCompleta();
+  }
+
+  // ============================================================================
+  // 8. ACTUALIZACIÓN DE UI COMPLETA
+  // ============================================================================
+  function actualizarInterfazCompleta() {
+    let mEcg;
+    if (state.fuente === 'USB') {
+      mEcg = state.usbStats.liveMetrics;
+    } else if (state.modoECG === 'custom') {
+      mEcg = obtenerPerfilCustomECG();
+    } else {
+      mEcg = PERFILES_ECG[state.modoECG];
+    }
+
+    document.getElementById('val-bpm').textContent = (state.fuente === 'USB' && mEcg.bpm === 0) ? '--' : mEcg.bpm;
+    document.getElementById('val-bpm').style.color = mEcg.colorBpm;
+    document.getElementById('lbl-ritmo').textContent = (state.fuente === 'USB')
+      ? `AD8232 USB • ${mEcg.ritmo}`
+      : `${mEcg.bpm} LPM • ${mEcg.ritmo}`;
+
+    document.getElementById('val-p').textContent = mEcg.ondaP;
+    document.getElementById('sub-p').textContent = mEcg.subP;
+    document.getElementById('val-pr').textContent = mEcg.pr;
+    document.getElementById('sub-pr').textContent = mEcg.subPr;
+    document.getElementById('val-qrs').textContent = mEcg.qrs;
+    document.getElementById('sub-qrs').textContent = mEcg.subQrs;
+    document.getElementById('val-qtc').textContent = mEcg.qtc;
+    document.getElementById('sub-qtc').textContent = mEcg.subQtc;
+    document.getElementById('val-st').textContent = mEcg.st;
+    document.getElementById('sub-st').textContent = mEcg.subSt;
+
+    const boxSt = document.getElementById('box-st');
+    const subSt = document.getElementById('sub-st');
+    if (mEcg.esAlerta && (mEcg.subSt.includes('SUPRADESNIVEL') || mEcg.subSt.includes('Supradesnivel'))) {
+      boxSt.style.borderColor = '#ef4444';
+      boxSt.style.background = 'rgba(239, 68, 68, 0.15)';
+      subSt.style.color = '#fca5a5';
+    } else if (mEcg.esAlerta && mEcg.subSt.includes('INFRADESNIVEL')) {
+      boxSt.style.borderColor = '#f59e0b';
+      boxSt.style.background = 'rgba(245, 158, 11, 0.15)';
+      subSt.style.color = '#fcd34d';
+    } else {
+      boxSt.style.borderColor = '#1e2f4a';
+      boxSt.style.background = '#121e31';
+      subSt.style.color = '#10b981';
+    }
+
+    const diagBox = document.getElementById('diag-box');
+    const treatCard = document.getElementById('treatment-card');
+    const treatHeader = document.getElementById('treatment-header');
+    const treatBody = document.getElementById('treatment-body');
+    const badgeGlobal = document.getElementById('badge-alerta-global');
+
+    // MODO REAL USB
+    if (state.fuente === 'USB') {
+      document.getElementById('diag-panel-title').textContent = 'Motor de Diagnóstico en Tiempo Real (Adquisición Física AD8232)';
+      document.getElementById('diag-ecg-text').textContent = mEcg.diagnostico;
+
+      const colorActivo = mEcg.colorAlerta;
+      diagBox.style.borderLeftColor = colorActivo;
+      treatCard.style.borderLeftColor = colorActivo;
+      treatHeader.style.color = colorActivo;
+
+      if (!mEcg.tratamientoTexto) {
+        treatHeader.textContent = '2. Conducta Clínica (Telemetría Real USB):';
+        treatBody.innerHTML = '• <b>Estado Nominal:</b> Actividad eléctrica cardíaca dentro de parámetros normales. No requiere intervención médica ni farmacológica.';
+      } else {
+        treatHeader.textContent = '2. Protocolo Clínico y Conducta (Telemetría Real USB):';
+        treatBody.innerHTML = mEcg.tratamientoTexto;
+      }
+
+      if (mEcg.severidad === 3) {
+        badgeGlobal.textContent = '🚨 ALERTA CRÍTICA: ATENCIÓN URGENTE';
+        badgeGlobal.classList.add('badge-critical');
+      } else if (mEcg.severidad >= 1) {
+        badgeGlobal.textContent = '⚠️ OBSERVACIÓN / REVISIÓN (USB)';
+        badgeGlobal.classList.remove('badge-critical');
+        badgeGlobal.style.color = '#fcd34d';
+        badgeGlobal.style.borderColor = '#f59e0b';
+      } else {
+        badgeGlobal.textContent = '✓ TELEMETRÍA USB NOMINAL';
+        badgeGlobal.classList.remove('badge-critical');
+        badgeGlobal.style.color = '#10b981';
+        badgeGlobal.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+      }
+      return;
+    }
+
+    // MODO SIMULACIÓN
+    document.getElementById('diag-panel-title').textContent = 'Motor de Diagnóstico Clínico y Terapéutica';
+
+    ['normal', 'stemi', 'fv', 'paro', 'custom'].forEach(m => {
+      const btn = document.getElementById(`ecg-btn-${m}`);
+      btn.classList.toggle('btn-active', state.modoECG === m && m !== 'custom');
+      if (m !== 'normal') btn.classList.toggle('active', state.modoECG === m);
+    });
+
+    // Actualizar Oxímetro Dual (SpO2 + NIRS)
+    const oxEval = evaluarOxigenacionIntegrada(state.spo2, state.sto2, state.rso2);
+    const oxInfo = oxEval.ox;
+    const nirsInfo = oxEval.nirs;
+
+    const oxCard = document.getElementById('oximeter-card');
+    const oxValEl = document.getElementById('val-spo2');
+    const oxBadge = document.getElementById('ox-status-badge');
+
+    oxValEl.textContent = `${state.spo2}%`;
+    oxValEl.style.color = oxInfo.color;
+    oxCard.style.borderLeftColor = oxInfo.color;
+
+    oxBadge.textContent = oxInfo.badge;
+    oxBadge.style.background = oxInfo.bgBadge;
+    oxBadge.style.borderColor = oxInfo.borderBadge;
+    oxBadge.style.color = oxInfo.textColorBadge;
+    document.getElementById('ox-action-box').innerHTML = oxInfo.accionHtml;
+
+    ['sano', 'leve', 'moderada', 'grave'].forEach(cat => {
+      const btn = document.getElementById(`ox-btn-${cat}`);
+      btn.className = 'btn-ox';
+      if (oxInfo.categoria === cat) btn.classList.add(`active-${cat}`);
+    });
+
+    // Actualizar UI NIRS
+    document.getElementById('nirs-card').style.borderLeftColor = nirsInfo.colorBorde;
+    const sto2El = document.getElementById('val-sto2');
+    sto2El.textContent = `${state.sto2}%`;
+    sto2El.style.color = nirsInfo.colorSto2;
+
+    const rso2El = document.getElementById('val-rso2');
+    rso2El.textContent = `${state.rso2}%`;
+    rso2El.style.color = nirsInfo.colorRso2;
+
+    ['ok', 'warn', 'crit'].forEach(c => {
+      const bSto = document.getElementById(`sto2-btn-${c}`);
+      bSto.className = 'btn-nirs-mini';
+      if (nirsInfo.catSto2 === c) bSto.classList.add(`active-${c}`);
+
+      const bRso = document.getElementById(`rso2-btn-${c}`);
+      bRso.className = 'btn-nirs-mini';
+      if (nirsInfo.catRso2 === c) bRso.classList.add(`active-${c}`);
+    });
+    document.getElementById('nirs-action-box').innerHTML = nirsInfo.boxHtml;
+
+    // Actualizar Quimiosensores RONSS
+    document.getElementById('q-btn-basal').classList.toggle('btn-active', state.modoQuimio === 'basal');
+    document.getElementById('q-btn-radiacion').classList.toggle('btn-active', state.modoQuimio === 'radiacion');
+
+    ['saludable', 'ligero', 'preocupante', 'peligro'].forEach(lvl => {
+      const btn = document.getElementById(`lvl-${lvl}`);
+      btn.className = 'btn-nivel';
+      if (state.nivelRadiacion === lvl) btn.classList.add(`active-${lvl}`);
+    });
+
+    const rData = RANGOS_RADIACION[state.nivelRadiacion];
+    document.getElementById('val-h2o2').textContent = `${rData.h2o2.toFixed(2)} µM`;
+    document.getElementById('bar-h2o2').style.width = `${rData.pH2o2}%`;
+    document.getElementById('bar-h2o2').style.backgroundColor = rData.cH2o2;
+
+    document.getElementById('val-o2').textContent = `${rData.o2.toFixed(2)} nM`;
+    document.getElementById('bar-o2').style.width = `${rData.pO2}%`;
+    document.getElementById('bar-o2').style.backgroundColor = rData.cO2;
+
+    document.getElementById('val-onoo').textContent = `${rData.onoo} nM`;
+    document.getElementById('bar-onoo').style.width = `${rData.pOnoo}%`;
+    document.getElementById('bar-onoo').style.backgroundColor = rData.cOnoo;
+
+    document.getElementById('val-no').textContent = `${rData.no} nM`;
+    document.getElementById('bar-no').style.width = `${rData.pNo}%`;
+    document.getElementById('bar-no').style.backgroundColor = rData.cNo;
+
+    document.getElementById('val-gsh').textContent = `${rData.gsh.toFixed(2)} mM`;
+    document.getElementById('bar-gsh').style.width = `${rData.pGsh}%`;
+    document.getElementById('bar-gsh').style.backgroundColor = rData.cGsh;
+
+    document.getElementById('val-mda').textContent = `${rData.mda.toFixed(2)} µM`;
+    document.getElementById('bar-mda').style.width = `${rData.pMda}%`;
+    document.getElementById('bar-mda').style.backgroundColor = rData.cMda;
+
+    // Textos del Motor de Diagnóstico Integrado
+    document.getElementById('diag-ecg-text').textContent = mEcg.diag;
+    document.getElementById('diag-ox-text').textContent = oxEval.resumen;
+    document.getElementById('diag-quimio-text').textContent = rData.resumen;
+
+    let acciones = [];
+    if (mEcg.tratamientoTexto) acciones.push(mEcg.tratamientoTexto);
+    if (oxEval.tratamientoTexto) acciones.push(oxEval.tratamientoTexto);
+    if (rData.tratamientoTexto) acciones.push(rData.tratamientoTexto);
+
+    const sevMax = Math.max(mEcg.severidad, oxEval.severidadTotal, rData.severidad);
+    const coloresSev = ['#10b981', '#38bdf8', '#f59e0b', '#ef4444'];
+    const colorActivo = coloresSev[sevMax];
+
+    diagBox.style.borderLeftColor = colorActivo;
+    treatCard.style.borderLeftColor = colorActivo;
+    treatHeader.style.color = colorActivo;
+
+    if (acciones.length === 0) {
+      treatHeader.textContent = '4. Protocolo Terapéutico Integrado (Estado Nominal):';
+      treatBody.innerHTML = '• <b>Conducta:</b> Homeostasis cardíaca, oxigenación arterial (SpO₂ ≥ 95%), perfusión tisular/cerebral NIRS y balance redox en rangos óptimos. No requiere fármacos ni oxigenoterapia.';
+    } else {
+      treatHeader.textContent = sevMax === 3
+        ? '4. Protocolo Terapéutico: 🚨 INTERVENCIÓN URGENTE REQUERIDA'
+        : '4. Protocolo Terapéutico y Conducta Recomendada:';
+      treatBody.innerHTML = acciones.join('<br>');
+    }
+
+    if (sevMax === 3) {
+      badgeGlobal.textContent = '🚨 ALERTA CRÍTICA: ATENCIÓN URGENTE';
+      badgeGlobal.classList.add('badge-critical');
+    } else if (sevMax === 2) {
+      badgeGlobal.textContent = '⚠️ ALERTA MODERADA: INTERVENCIÓN REQUERIDA';
+      badgeGlobal.classList.remove('badge-critical');
+      badgeGlobal.style.color = '#fcd34d';
+      badgeGlobal.style.borderColor = '#f59e0b';
+    } else if (sevMax === 1) {
+      badgeGlobal.textContent = 'ℹ️ OBSERVACIÓN / ESTUDIOS RECOMENDADOS';
+      badgeGlobal.classList.remove('badge-critical');
+      badgeGlobal.style.color = '#7dd3fc';
+      badgeGlobal.style.borderColor = '#38bdf8';
+    } else {
+      badgeGlobal.textContent = 'ESTADO NOMINAL';
+      badgeGlobal.classList.remove('badge-critical');
+      badgeGlobal.style.color = '#10b981';
+      badgeGlobal.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+    }
+  }
+
+  // ============================================================================
+  // 9. MOTOR GRÁFICO DE ONDA ECG (USB + PERFILES + CREADOR PARAMÉTRICO CUSTOM)
+  // ============================================================================
+  const canvas = document.getElementById('ecgCanvas');
+  const ctx = canvas.getContext('2d');
+  let phase = 0;
+  let dataPoints = [];
+
+  function resizeCanvas() {
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+    dataPoints = new Array(canvas.width).fill(canvas.height * 0.55);
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  function mapearMuestraUSB(rawVal) {
+    const fw = state.usbStats.filterWindow;
+    fw.push(rawVal);
+    if (fw.length > 5) fw.shift();
+    const filteredVal = fw.reduce((a, b) => a + b, 0) / fw.length;
+
+    const now = Date.now();
+    state.usbStats.history.push({ v: filteredVal, t: now });
+    if (state.usbStats.history.length > 450) state.usbStats.history.shift();
+
+    if (filteredVal < state.usbStats.minVal) state.usbStats.minVal = filteredVal;
+    if (filteredVal > state.usbStats.maxVal) state.usbStats.maxVal = filteredVal;
+
+    state.usbStats.minVal += (filteredVal - state.usbStats.minVal) * 0.003;
+    state.usbStats.maxVal -= (state.usbStats.maxVal - filteredVal) * 0.003;
+
+    const span = Math.max(state.usbStats.maxVal - state.usbStats.minVal, 15);
+    const norm = (filteredVal - state.usbStats.minVal) / span;
+
+    const h = state.usbStats.history;
+    if (h.length >= 25) {
+      const checkIdx = h.length - 12;
+      const candidate = h[checkIdx];
+      const candNorm = (candidate.v - state.usbStats.minVal) / span;
+
+      if (candNorm > 0.72 && (candidate.t - state.usbStats.lastPeakTime) > 440) {
+        let isLocalMax = true;
+        for (let k = checkIdx - 8; k <= checkIdx + 8; k++) {
+          if (h[k].v > candidate.v) {
+            isLocalMax = false;
+            break;
+          }
+        }
+        if (isLocalMax) procesarLatidoUSB(checkIdx);
+      }
+    }
+
+    return canvas.height * (0.85 - norm * 0.70);
+  }
+
+  function generarMuestraSimulada(t) {
+    const base = canvas.height * 0.58;
+    const modo = state.modoECG;
+
+    if (modo === 'paro') return base + (Math.random() - 0.5) * 1.5;
+    if (modo === 'fv') return base + Math.sin(t * 28) * 28 + Math.cos(t * 43) * 18 + (Math.random() - 0.5) * 10;
+
+    if (modo === 'custom') {
+      const cfg = state.customECG;
+      const freqHz = cfg.bpm / 60.0;
+      const cycleMs = 1000.0 / freqHz;
+      const c = (t * freqHz) % 1.0;
+
+      const rCenter = 0.34;
+      const pDuration = Math.min(0.11, 85 / cycleMs);
+      const prNorm = Math.min(0.28, cfg.prMs / cycleMs);
+      const pStart = Math.max(0.02, rCenter - prNorm);
+      const pEnd = pStart + pDuration;
+
+      const qrsHalf = Math.min(0.09, (cfg.qrsMs / 2) / cycleMs);
+      const qStart = rCenter - qrsHalf;
+      const jPoint = rCenter + qrsHalf;
+
+      const tStart = jPoint + 0.03;
+      const tEnd = Math.min(0.95, tStart + Math.min(0.26, 220 / cycleMs));
+
+      const pxPerMv = 105;
+      const stOffsetPx = cfg.stMv * pxPerMv;
+      const pHeightPx = cfg.pAmp * pxPerMv;
+      const tHeightPx = cfg.tAmp * pxPerMv;
+
+      let v = 0;
+      if (c >= pStart && c <= pEnd && cfg.pAmp > 0) {
+        const p = (c - pStart) / (pEnd - pStart);
+        v -= Math.sin(p * Math.PI) * pHeightPx;
+      } else if (c >= qStart && c < rCenter) {
+        const p = (c - qStart) / (rCenter - qStart);
+        if (p < 0.28) {
+          v += (p / 0.28) * 10;
+        } else {
+          const rp = (p - 0.28) / 0.72;
+          v += 10 - Math.sin(rp * (Math.PI / 2)) * 115;
+        }
+      } else if (c >= rCenter && c <= jPoint) {
+        const p = (c - rCenter) / (jPoint - rCenter);
+        if (p < 0.65) {
+          const sp = p / 0.65;
+          v += -105 + sp * 123;
+        } else {
+          const jp = (p - 0.65) / 0.35;
+          v += (1 - jp) * 18 - jp * stOffsetPx;
+        }
+      } else if (c > jPoint && c < tStart) {
+        v -= stOffsetPx;
+      } else if (c >= tStart && c <= tEnd) {
+        const p = (c - tStart) / (tEnd - tStart);
+        v -= stOffsetPx + Math.sin(p * Math.PI) * tHeightPx;
+      }
+
+      return base + v + (Math.random() - 0.5) * 1.4;
+    }
+
+    const freq = (modo === 'stemi') ? 1.55 : 1.25;
+    const c = (t * freq) % 1.0;
+
+    let v = 0;
+    if (c > 0.10 && c < 0.18) {
+      v -= Math.sin(((c - 0.10) / 0.08) * Math.PI) * 12;
+    } else if (c >= 0.22 && c < 0.24) {
+      v += ((c - 0.22) / 0.02) * 10;
+    } else if (c >= 0.24 && c < 0.27) {
+      const p = (c - 0.24) / 0.03;
+      v += 10 - Math.sin(p * Math.PI) * 105;
+    } else if (c >= 0.27 && c < 0.30) {
+      const p = (c - 0.27) / 0.03;
+      if (modo === 'stemi') v += (1 - p) * 12 - p * 34;
+      else v += Math.sin(p * Math.PI) * 18;
+    } else if (c >= 0.30 && c < 0.52) {
+      const p = (c - 0.30) / 0.22;
+      if (modo === 'stemi') v -= 34 + Math.sin(p * Math.PI) * 22;
+      else if (p > 0.25 && p < 0.85) v -= Math.sin(((p - 0.25) / 0.60) * Math.PI) * 22;
+    }
+
+    return base + v + (Math.random() - 0.5) * 1.8;
+  }
+
+  function dibujarCuadricula() {
+    ctx.strokeStyle = 'rgba(30, 47, 74, 0.35)';
+    ctx.lineWidth = 1;
+    const step = 20;
+    for (let x = 0; x < canvas.width; x += step) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+    }
+    for (let y = 0; y < canvas.height; y += step) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    }
+  }
+
+  function loopAnimacion() {
+    ctx.fillStyle = '#050911';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    dibujarCuadricula();
+
+    if (state.fuente === 'USB') {
+      while (state.usbBuffer.length > 0) {
+        const raw = state.usbBuffer.shift();
+        dataPoints.push(mapearMuestraUSB(raw));
+        if (dataPoints.length > canvas.width) dataPoints.shift();
+      }
+      const ahora = Date.now();
+      if (ahora - state.usbStats.lastRateTime >= 1000) {
+        state.usbStats.sampleRateHz = state.usbStats.samplesCount || 185;
+        document.getElementById('usb-rate-val').textContent = state.usbStats.samplesCount;
+        state.usbStats.samplesCount = 0;
+        state.usbStats.lastRateTime = ahora;
+      }
+    } else {
+      for (let i = 0; i < 2; i++) {
+        phase += 0.008;
+        dataPoints.push(generarMuestraSimulada(phase));
+        if (dataPoints.length > canvas.width) dataPoints.shift();
+      }
+    }
+
+    ctx.beginPath();
+    ctx.lineWidth = 2.2;
+    if (state.fuente === 'USB') {
+      ctx.strokeStyle = '#38bdf8';
+    } else if (state.modoECG === 'custom') {
+      ctx.strokeStyle = (state.customECG.stMv >= 0.15 || state.customECG.bpm > 150) ? '#ef4444' : '#c084fc';
+    } else {
+      ctx.strokeStyle = (state.modoECG === 'normal') ? '#10b981' : '#ef4444';
+    }
+
+    for (let x = 0; x < dataPoints.length; x++) {
+      if (x === 0) ctx.moveTo(x, dataPoints[x]);
+      else ctx.lineTo(x, dataPoints[x]);
+    }
+    ctx.stroke();
+
+    requestAnimationFrame(loopAnimacion);
+  }
+
+  // ============================================================================
+  // 10. CONEXIÓN SERIAL CON ARDUINO (WEB SERIAL API)
+  // ============================================================================
+  async function conectarArduinoUSB() {
+    if (!('serial' in navigator)) {
+      alert('Tu navegador no soporta Web Serial API. Usa Google Chrome o Microsoft Edge.');
+      return;
+    }
+    try {
+      const baudRate = parseInt(document.getElementById('baud-rate-select').value, 10);
+      state.port = await navigator.serial.requestPort();
+      await state.port.open({ baudRate });
+
+      configurarModoFuente('USB');
+      document.getElementById('btn-connect-usb').style.display = 'none';
+      document.getElementById('btn-disconnect-usb').style.display = 'inline-block';
+      document.getElementById('usb-status-text').textContent = `USB Conectado (${baudRate} bps)`;
+      document.getElementById('usb-status-text').style.color = '#38bdf8';
+
+      const decoder = new TextDecoderStream();
+      state.port.readable.pipeTo(decoder.writable);
+      state.reader = decoder.readable.getReader();
+
+      let partial = '';
+      while (true) {
+        const { value, done } = await state.reader.read();
+        if (done) break;
+        partial += value;
+        const lines = partial.split(/\r?\n/);
+        partial = lines.pop();
+
+        for (const line of lines) {
+          const clean = line.trim();
+          if (!clean) continue;
+          const match = clean.match(/[-+]?\d*\.?\d+/);
+          if (match) {
+            const num = parseFloat(match[0]);
+            if (!isNaN(num)) {
+              state.usbBuffer.push(num);
+              state.usbStats.lastRaw = num;
+              state.usbStats.samplesCount++;
+              document.getElementById('usb-raw-val').textContent = num;
+              if (state.usbBuffer.length > 600) state.usbBuffer.shift();
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error Serial:', err);
+      desconectarArduinoUSB();
+    }
+  }
+
+  async function desconectarArduinoUSB() {
+    try {
+      if (state.reader) { await state.reader.cancel(); state.reader = null; }
+      if (state.port) { await state.port.close(); state.port = null; }
+    } catch (e) {}
+    configurarModoFuente('SIM');
+    document.getElementById('btn-connect-usb').style.display = 'inline-block';
+    document.getElementById('btn-disconnect-usb').style.display = 'none';
+    document.getElementById('usb-status-text').textContent = 'Modo: Simulación Local';
+    document.getElementById('usb-status-text').style.color = '#94a3b8';
+  }
+
+  // Inicializar
+  actualizarInterfazCompleta();
+  loopAnimacion();
+</script>
+</body>
+</html>
